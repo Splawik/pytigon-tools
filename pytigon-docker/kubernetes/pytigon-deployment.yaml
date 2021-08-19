@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pytigon-deployment
+  labels:
+    app: pytigon
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pytigon
+  template:
+    metadata:
+      labels:
+        app: pytigon
+    spec:
+      containers:
+        - name: pytigon
+          image: splawik/docker-pytigon:latest
+          ports:
+            - containerPort: 80
+          resources:
+          #  limits:
+          #    memory: "512Mi"
+          #    cpu: "250m"
+          env:
+            - name: ASGI_SERVER_NAME
+              value: gunicorn
+            - name: CACHE_URL
+              value: redis://redis-service:6379/2
+            - name: CHANNELS_REDIS
+              value: redis-service:6379
+            - name: DATABASE_URL
+              value: ???
+            - name: EMAIL_URL
+              value: ???
+            - name: INCLUDE_DEVTOOLS
+              value: "True"
+            - name: INCLUDE_SETUP
+              value: "True"
+            - name: LD_RUN_PATH
+              value: /home/www-data/pytigon/ext_prg/tcc
+            - name: MAIN_PRJ
+              value: schportal
+            - name: NO_EXECUTE_TASKS
+              value: "1"
+            - name: PYTHONUNBUFFERED
+              value: "TRUE"
+            - name: PYTIGON_NO_DEBUG
+              value: "1"
+            - name: PYTIGON_ROOT_PATH
+              value: /home/www-data/pytigon/
+            - name: SECRET_KEY
+              value: ???
+            - name: VIRTUAL_HOST
+              value: ???
+            - name: WEBSOCKET_TIMEOUT
+              value: "15"
+            - name: LOGS_TO_DOCKER
+              value: "1"
+          volumeMounts:
+            - mountPath: /home/www-data/.pytigon
+              name: www-data
+      volumes:
+        - name: www-data
+          persistentVolumeClaim:
+            claimName: www-data

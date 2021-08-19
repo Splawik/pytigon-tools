@@ -1,0 +1,50 @@
+FROM pypy as build
+
+RUN apt-get update -y
+
+RUN pip install --upgrade pip
+RUN pip install Twisted[tls,http2]==21.7.0
+RUN pip install pytigon-lib
+RUN pip install pytigon-batteries
+RUN pip install psycopg2cffi channels_redis graphviz gunicorn --upgrade
+RUN pip install "uvicorn<0.12"
+RUN pip install django-sql-explorer --upgrade
+RUN pip install django-polymorphic
+RUN pip install django-graphql-jwt --upgrade
+RUN pip install psutil
+
+FROM pypy:slim
+
+RUN apt-get update -y
+
+#RUN apt-get install -y curl git apt-transport-https &&\
+RUN apt-get install -y redis-server
+
+#RUN apt-get install -y default-mysql-client default-libmysqlclient-dev && \
+RUN apt-get install -y nginx zip
+
+RUN mkdir -p /home/www-data/pytigon/ext_prg
+RUN mkdir -p /home/www-data/.pytigon/temp
+
+ADD ./entrypoint-interface.py /home/www-data/pytigon/entrypoint-interface.py
+ADD ./entrypoint-interface-scheduler.sh /home/www-data/pytigon/entrypoint-interface-scheduler.sh
+
+WORKDIR /home/www-data/pytigon
+RUN echo '2'
+RUN chown -R www-data:www-data /home/www-data && \
+    usermod -d /home/www-data www-data && \
+    ln -s /etc/nginx/sites-available/pytigon /etc/nginx/sites-enabled/pytigon && \
+    rm /etc/nginx/sites-available/default && \
+    rm /etc/nginx/sites-enabled/default
+
+RUN apt-get -y install postgresql-client postgresql-client-common 
+COPY --from=build /opt/pypy/site-packages/ /opt/pypy/site-packages/
+RUN pip uninstall -y gunicorn 
+RUN pip install gunicorn
+
+COPY --from=build /opt/pypy/site-packages/ /opt/pypy/site-packages/
+
+EXPOSE 80
+EXPOSE 443
+
+CMD ["pypy3", "entrypoint-interface.py"]

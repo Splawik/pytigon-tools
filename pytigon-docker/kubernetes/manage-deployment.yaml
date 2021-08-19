@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: manage-deployment
+  labels:
+    app: manage
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: manage
+  template:
+    metadata:
+      labels:
+        app: manage
+    spec:
+      containers:
+        - name: manage
+          image: splawik/docker-pytigon:latest
+          command: ["sleep"]
+          args: ["infinity"]
+          resources:
+            limits:
+              memory: "128Mi"
+              cpu: "50m"
+          volumeMounts:
+            - mountPath: /home/www-data/.pytigon
+              name: www-data
+            - mountPath: /var/log
+              name: log-data
+      volumes:
+        - name: www-data
+          persistentVolumeClaim:
+            claimName: www-data
+        - name: log-data
+          persistentVolumeClaim:
+            claimName: log-data

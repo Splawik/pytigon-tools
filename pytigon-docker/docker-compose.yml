@@ -1,0 +1,98 @@
+version: "3.2"
+services:
+  pytigon:
+    image: "splawik/docker-pytigon:latest"
+    ports:
+      - "80:80"
+      - "443:443"
+    extra_hosts:
+      - "pytigon_db:?"
+    environment:
+      - DATABASE_URL=?
+      - LD_RUN_PATH=/home/www-data/pytigon/ext_prg/tcc
+      - PYTIGON_NO_DEBUG=1
+      - CERT=/etc/cert/fullchain.pem;/etc/cert/privkey.pem
+      - VIRTUAL_HOST=?
+      - PORT_80_REDIRECT=https://?
+      - VIRTUAL_PORT_80=80
+      #- PYTIGON_DEBUG=1
+      - CACHE_URL=redis://redis:6379/2
+      - SECRET_KEY=?
+      - EMAIL_URL=?
+      - PYTIGON_ROOT_PATH=/home/www-data/pytigon/
+      - NO_EXECUTE_TASKS=1
+      - INCLUDE_SETUP=True
+      - INCLUDE_DEVTOOLS=True
+      - MAIN_PRJ=schportal
+      - ASGI_SERVER_NAME=gunicorn
+      - WEBSOCKET_TIMEOUT=15
+      - PYTHONUNBUFFERED=TRUE
+      - CHANNELS_REDIS=redis:6379
+    volumes:
+      - type: "volume"
+        source: "www-data"
+        target: "/home/www-data/.pytigon"
+      - type: "volume"
+        source: "cert-data"
+        target: "/etc/cert"
+      - type: "volume"
+        source: "log-data"
+        target: "/var/log"
+    networks:
+      - pytigon-net
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  pytigonscheduler:
+    image: "splawik/docker-pytigon:latest"
+    extra_hosts:
+      - "pytigon_db:?"
+    environment:
+      - DATABASE_URL=?
+      - LD_RUN_PATH=/home/www-data/pytigon/ext_prg/tcc
+      - PYTIGON_NO_DEBUG=1
+      - VIRTUAL_HOST=?
+      - SECRET_KEY=?
+      - EMAIL_URL=?
+      - NO_EXECUTE_TASKS=1
+      - MAIN_PRJ=?
+      - PYTHONUNBUFFERED=TRUE
+    volumes:
+      - type: "volume"
+        source: "www-data"
+        target: "/home/www-data/.pytigon"
+      - type: "volume"
+        source: "cert-data"
+        target: "/etc/cert"
+      - type: "volume"
+        source: "log-data"
+        target: "/var/log"
+    networks:
+      - pytigon-net
+    entrypoint: bash entry-point-interface-scheduler.sh
+    restart: unless-stopped
+
+  redis:
+    image: "library/redis:5.0-alpine"
+    networks:
+      - pytigon-net
+    volumes:
+      - type: "volume"
+        source: "redis-data"
+        target: "/data"
+    restart: unless-stopped
+
+volumes:
+  redis-data:
+    driver: local
+  www-data:
+    driver: local
+  cert-data:
+    driver: local
+  log-data:
+    driver: local
+
+networks:
+  pytigon-net:
+    driver: bridge
