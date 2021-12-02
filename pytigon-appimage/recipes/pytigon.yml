@@ -42,7 +42,9 @@ ingredients:
     - postgresql-client-common
     - libpq-dev
     - libffi-dev
+    - libffi
     - libssl-dev
+    - tcc
 
     #- libwebkitgtk-dev
     #- libwebkitgtk-3.0-dev
@@ -58,6 +60,7 @@ ingredients:
     - venv/bin/pip install mysql psycopg2-binary
     - venv/bin/pip install -f https://extras.wxpython.org/wxPython4/extras/linux/gtk3/debian-10/ wxPython
     - venv/bin/pip install git+https://github.com/Splawik/pytigon-gui.git --upgrade
+    - venv/bin/pip install git+https://github.com/Splawik/pytigon-batteries.git --upgrade
     - venv/bin/pip install git+https://github.com/Splawik/pytigon.git --upgrade
     - venv/bin/pip install git+https://github.com/Splawik/pytigon-lib.git --upgrade
     #- venv/bin/pip install cefpython3

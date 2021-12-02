@@ -13,7 +13,7 @@ if __name__ == "__main__":
 
     import pytigon
 
-    site_packages =  [ path for path in sys.path if 'site-packages' in path ][0]
+    site_packages = [path for path in sys.path if "site-packages" in path][0]
     python_path = sys.executable
 
     environ["START_PATH"] = os.path.abspath(os.getcwd())
@@ -59,9 +59,7 @@ if __name__ == "__main__":
     # hack:
     subprocess.Popen("chmod -R 777 /home/www-data/.pytigon/static", shell=True)
 
-    subprocess.Popen(
-        "chmod -R 777 %s/pytigon" % site_packages, shell=True
-    )
+    subprocess.Popen("chmod -R 777 %s/pytigon" % site_packages, shell=True)
     # hack end
 
     if "VIRTUAL_HOST" in environ:
@@ -257,7 +255,7 @@ if __name__ == "__main__":
             add_header X-Content-Type-Options "nosniff" always;
             add_header Referrer-Policy "same-origin";
             add_header Permissions-Policy "autoplay=(), camera=(), geolocation=(), microphone=(), midi=()";
-            add_header Content-Security-Policy "default-src https: data: 'self' 'unsafe-inline';";
+            add_header Content-Security-Policy "default-src https: data: 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval';";
         }}
     """
     CFG_END = f"""
@@ -288,7 +286,7 @@ if __name__ == "__main__":
             add_header X-Content-Type-Options "nosniff" always;
             add_header Referrer-Policy "same-origin";
             add_header Permissions-Policy "autoplay=(), camera=(), geolocation=(), microphone=(), midi=()";
-            add_header Content-Security-Policy "default-src https: data: 'self' 'unsafe-inline';";
+            add_header Content-Security-Policy "default-src https: data: 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval';";
         }}
     }}
     """
@@ -343,7 +341,7 @@ if __name__ == "__main__":
                 add_header X-Content-Type-Options "nosniff" always;
                 add_header Referrer-Policy "same-origin";
                 add_header Permissions-Policy "autoplay=(), camera=(), geolocation=(), microphone=(), midi=()";
-                add_header Content-Security-Policy "default-src https: data: 'self' 'unsafe-inline';";
+                add_header Content-Security-Policy "default-src https: data: 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval';";                
             }}
     }}
 """
@@ -377,7 +375,6 @@ if __name__ == "__main__":
             else:
                 PRJS.append(prj)
 
-
     if "INCLUDE_SETUP" in environ:
         PRJS.append("schsetup")
     if "INCLUDE_DEVTOOLS" in environ:
@@ -392,10 +389,9 @@ if __name__ == "__main__":
         try:
             x = __import__(MAIN_PRJ + ".apps")
             if hasattr(x.apps, "NO_ASGI") and x.apps.NO_ASGI:
-               NO_ASGI.append(MAIN_PRJ)
+                NO_ASGI.append(MAIN_PRJ)
         except:
             pass
-
 
     if not MAIN_PRJ and len(PRJS) == 1:
         MAIN_PRJ = PRJS[0]
@@ -414,20 +410,30 @@ if __name__ == "__main__":
             if not os.path.exists(path):
                 path = f"{PRJ_PATH_ALT}/{prj}/static/{prj}"
 
-            conf.write(CFG_ELEM.replace("$PRJ", prj).replace("$PORT2", str(port2)).replace("$PORT", str(port)))
+            conf.write(
+                CFG_ELEM.replace("$PRJ", prj)
+                .replace("$PORT2", str(port2))
+                .replace("$PORT", str(port))
+            )
             port += 2
             port2 = port + 1
         if MAIN_PRJ:
             if NGINX_INCLUDE:
                 conf.write("    include %s;\n\n" % NGINX_INCLUDE)
-            conf.write(CFG_END.replace("$PORT2", str(port2)).replace("$PORT", str(port)))
+            conf.write(
+                CFG_END.replace("$PORT2", str(port2)).replace("$PORT", str(port))
+            )
 
-        if 'ADDITIONAL_SERVICES' in environ:
-            additional_services = environ['ADDITIONAL_SERVICES'].split(';')
+        if "ADDITIONAL_SERVICES" in environ:
+            additional_services = environ["ADDITIONAL_SERVICES"].split(";")
             for item in additional_services:
-                if ':' in item:
-                    host,service = item.strip().split(':',1)
-                    conf.write(CFG_ADDITIONAL.replace('[service]', service).replace('[host]', host))
+                if ":" in item:
+                    host, service = item.strip().split(":", 1)
+                    conf.write(
+                        CFG_ADDITIONAL.replace("[service]", service).replace(
+                            "[host]", host
+                        )
+                    )
     if MAIN_PRJ and not MAIN_PRJ in PRJS:
         PRJS.append(MAIN_PRJ)
 
@@ -450,7 +456,9 @@ if __name__ == "__main__":
             )
 
             fnull = open(os.devnull, "w")
-            collectstatic = subprocess.Popen(cmd, shell=True, stdout=fnull, stderr=subprocess.STDOUT)
+            collectstatic = subprocess.Popen(
+                cmd, shell=True, stdout=fnull, stderr=subprocess.STDOUT
+            )
             collectstatic.wait()
 
             if prj in NOWP:
@@ -461,7 +469,6 @@ if __name__ == "__main__":
                     if prj == MAIN_PRJ
                     else NOWP["default-additional"]
                 )
-
 
             server = f"gunicorn --preload -b 0.0.0.0:{port} --user www-data -w {count} {access_logfile} {error_logfile} wsgi -t {TIMEOUT}"
             if prj in NO_ASGI:
@@ -485,8 +492,16 @@ if __name__ == "__main__":
                 ret_tab.append(subprocess.Popen(cmd, shell=True))
             port += 2
 
-    if "RUN_TASKS_QUEUE" in environ and environ["RUN_TASKS_QUEUE"] and environ["RUN_TASKS_QUEUE"] != "0":
-        if "ASYNC_TASKS" in environ and environ["ASYNC_TASKS"] and environ["ASYNC_TASKS"] != "0":
+    if (
+        "RUN_TASKS_QUEUE" in environ
+        and environ["RUN_TASKS_QUEUE"]
+        and environ["RUN_TASKS_QUEUE"] != "0"
+    ):
+        if (
+            "ASYNC_TASKS" in environ
+            and environ["ASYNC_TASKS"]
+            and environ["ASYNC_TASKS"] != "0"
+        ):
             for prj in PRJS:
                 cmd = (
                     "cd /home/www-data/.pytigon && su -m www-data -s /bin/sh -c 'exec %s -m pytigon.pytigon_task %s'"
@@ -494,10 +509,10 @@ if __name__ == "__main__":
                 )
                 ret_tab.append(subprocess.Popen(cmd, shell=True))
         else:
-            if 'TASKS_QUEUE_PRJ' in environ and environ['TASKS_QUEUE_PRJ']:
-                task_queue_prj = environ['TASKS_QUEUE_PRJ']
+            if "TASKS_QUEUE_PRJ" in environ and environ["TASKS_QUEUE_PRJ"]:
+                task_queue_prj = environ["TASKS_QUEUE_PRJ"]
             else:
-                task_queue_prj = '_schall'
+                task_queue_prj = "_schall"
             cmd = (
                 "cd /home/www-data/.pytigon && su -m www-data -s /bin/sh -c 'exec %s -m pytigon.ptig manage_%s qcluster'"
                 % (get_executable(), task_queue_prj)

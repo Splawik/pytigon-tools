@@ -21,7 +21,7 @@ RUN pip install psycopg2-binary channels_redis graphviz psutil
 FROM python:3.9-slim
 
 RUN apt-get update -y
-RUN apt-get install -y redis-server nginx
+RUN apt-get install -y redis-server nginx tcc
 RUN apt-get -y install postgresql-client postgresql-client-common libpq-dev
 
 RUN mkdir -p /home/www-data/pytigon/ext_prg
