@@ -479,9 +479,9 @@ if __name__ == "__main__":
                 server3 = f"su -m www-data -s /bin/sh -c 'daphne -b 0.0.0.0 -p {port+1} --proxy-headers {access_log} asgi:application'"
                 asgi_server = (server1, server2, server3)[ASGI_SERVER_ID]
 
-            path = f"/home/www-data/.pytigon/prj/{prj}"
+            path = f"{PRJ_PATH}/{prj}"
             if not os.path.exists(path):
-                path = f"{site_packages}/pytigon/prj/{prj}"
+                path = f"{PRJ_PATH_ALT}/{prj}"
 
             cmd = f"cd {path} && exec {server}"
             print(cmd)
