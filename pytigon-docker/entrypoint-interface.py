@@ -4,6 +4,7 @@ import subprocess
 import os
 import sys
 import pwd
+import os
 from os import environ
 
 
@@ -40,6 +41,9 @@ if __name__ == "__main__":
     LOCAL_IP = "http://127.0.0.1"
     sys.path.append(BASE_APPS_PATH)
     sys.path.append(PRJ_PATH_ALT)
+
+    env2 = os.environ.copy()
+    env2["PYTHONPATH"] = BASE_APPS_PATH + ":" + PRJ_PATH_ALT
 
     uid, gid = pwd.getpwnam("www-data").pw_uid, pwd.getpwnam("www-data").pw_uid
 
@@ -142,12 +146,12 @@ if __name__ == "__main__":
         WEBSOCKET_TIMEOUT = "30"
 
     # ASGI_SERVER_NAME:
-    # 1. daphne
-    # 2. gunicorn
-    # 3. hypercorn
+    # 0. gunicorn
+    # 1. uvicorn
+    # 2. daphne
     ASGI_SERVER_ID = 0
     if "ASGI_SERVER_NAME" in environ:
-        if "gunicorn" in environ["ASGI_SERVER_NAME"]:
+        if "uvicorn" in environ["ASGI_SERVER_NAME"]:
             ASGI_SERVER_ID = 1
         elif "daphne" in environ["ASGI_SERVER_NAME"]:
             ASGI_SERVER_ID = 2
@@ -163,187 +167,187 @@ if __name__ == "__main__":
 
     if PORT_80_REDIRECT:
         CFG_OLD = f"""server {{
-           listen         {VIRTUAL_PORT_80};
-           server_name    {VIRTUAL_HOST} www.{VIRTUAL_HOST};
-           return         301 {PORT_80_REDIRECT}$request_uri;
-    }}
+    listen         {VIRTUAL_PORT_80};
+    server_name    {VIRTUAL_HOST} www.{VIRTUAL_HOST};
+    return         301 {PORT_80_REDIRECT}$request_uri;
+}}
 
-    """
+"""
 
     if CRT:
         CFG_START = f"""
-    server {{
-        listen {VIRTUAL_PORT};
-        client_max_body_size 50M;
-        server_name www.{VIRTUAL_HOST};
-        charset utf-8;
+server {{
+    listen {VIRTUAL_PORT};
+    client_max_body_size 50M;
+    server_name www.{VIRTUAL_HOST};
+    charset utf-8;
 
-        {CRT}
-        {KEY}
+    {CRT}
+    {KEY}
 
-        return 301 {PORT_80_REDIRECT}$request_uri;
-    }}"""
+    return 301 {PORT_80_REDIRECT}$request_uri;
+}}"""
     else:
         CFG_START = ""
 
     CFG_START += f"""
 
-    map $http_upgrade $connection_upgrade {{
-        default upgrade;
-        ''      close;
+map $http_upgrade $connection_upgrade {{
+    default upgrade;
+    ''      close;
+}}
+
+server {{
+    listen {VIRTUAL_PORT};
+    client_max_body_size 50M;
+    server_name {VIRTUAL_HOST};
+    charset utf-8;
+
+    {CRT}
+    {KEY}
+
+    location /static/ {{
+        alias {STATIC_PATH}/$PRJ/;
+        autoindex on;
     }}
 
-    server {{
-        listen {VIRTUAL_PORT};
-        client_max_body_size 50M;
-        server_name {VIRTUAL_HOST};
-        charset utf-8;
-
-        {CRT}
-        {KEY}
-
-        location /static/ {{
-            alias {STATIC_PATH}/$PRJ/;
-            autoindex on;
-        }}
-
-    """
+"""
     CFG_ELEM = f"""
-        location /$PRJ/static/ {{
-            alias {STATIC_PATH}/$PRJ/;
-            autoindex on;
-        }}
-        location /$PRJ/site_media/ {{
-            alias {DATA_PATH}/$PRJ/media/;
-            autoindex on;
-        }}
-        location /$PRJ/site_media_protected/ {{
-            internal;
-            alias {DATA_PATH}/$PRJ/media_protected/;
-        }}
-        location ~ /$PRJ(.*)/channel/$ {{
-            proxy_http_version 1.1;
-
-            proxy_set_header Upgrade $http_upgrade;
-            proxy_set_header Connection "upgrade";
-            proxy_pass {LOCAL_IP}:$PORT2/$PRJ$1/channel/;
-            proxy_connect_timeout       {WEBSOCKET_TIMEOUT};
-            proxy_send_timeout          {WEBSOCKET_TIMEOUT};
-            proxy_read_timeout          {WEBSOCKET_TIMEOUT};
-            send_timeout                {WEBSOCKET_TIMEOUT};
-        }}
-        location /$PRJ {{
-            proxy_pass {LOCAL_IP}:$PORT/$PRJ;
-
-            proxy_set_header Host $host;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-For $remote_addr;
-
-            proxy_set_header X-Forwarded-Host $host;
-            proxy_set_header X-Forwarded-Proto https;
-            proxy_set_header Upgrade $http_upgrade;
-            proxy_set_header Connection $connection_upgrade;
-
-            proxy_connect_timeout       {TIMEOUT};
-            proxy_send_timeout          {TIMEOUT};
-            proxy_read_timeout          {TIMEOUT};
-            send_timeout                {TIMEOUT};
-
-            add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
-            add_header X-Frame-Options "SAMEORIGIN" always;
-            add_header X-Xss-Protection "1; mode=block" always;
-            add_header X-Content-Type-Options "nosniff" always;
-            add_header Referrer-Policy "same-origin";
-            add_header Permissions-Policy "autoplay=(), camera=(), geolocation=(), microphone=(), midi=()";
-            add_header Content-Security-Policy "default-src https: data: 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval';";
-        }}
-    """
-    CFG_END = f"""
-        location ~ (.*)/channel/$ {{
-            proxy_http_version 1.1;
-            proxy_set_header Upgrade $http_upgrade;
-            proxy_set_header Connection "upgrade";
-            proxy_pass {LOCAL_IP}:$PORT2$1/channel/;
-            proxy_connect_timeout       {WEBSOCKET_TIMEOUT};
-            proxy_send_timeout          {WEBSOCKET_TIMEOUT};
-            proxy_read_timeout          {WEBSOCKET_TIMEOUT};
-            send_timeout                {WEBSOCKET_TIMEOUT};
-        }}
-
-        location / {{
-            proxy_pass {LOCAL_IP}:$PORT;
-            proxy_set_header Host $host;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-For $remote_addr;
-            proxy_connect_timeout       {TIMEOUT};
-            proxy_send_timeout          {TIMEOUT};
-            proxy_read_timeout          {TIMEOUT};
-            send_timeout                {TIMEOUT};
-
-            add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
-            add_header X-Frame-Options "SAMEORIGIN" always;
-            add_header X-Xss-Protection "1; mode=block" always;
-            add_header X-Content-Type-Options "nosniff" always;
-            add_header Referrer-Policy "same-origin";
-            add_header Permissions-Policy "autoplay=(), camera=(), geolocation=(), microphone=(), midi=()";
-            add_header Content-Security-Policy "default-src https: data: 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval';";
-        }}
+    location /$PRJ/static/ {{
+        alias {STATIC_PATH}/$PRJ/;
+        autoindex on;
     }}
-    """
+    location /$PRJ/site_media/ {{
+        alias {DATA_PATH}/$PRJ/media/;
+        autoindex on;
+    }}
+    location /$PRJ/site_media_protected/ {{
+        internal;
+        alias {DATA_PATH}/$PRJ/media_protected/;
+    }}
+    location ~ /$PRJ(.*)/channel/$ {{
+        proxy_http_version 1.1;
+
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_pass {LOCAL_IP}:$PORT2/$PRJ$1/channel/;
+        proxy_connect_timeout       {WEBSOCKET_TIMEOUT};
+        proxy_send_timeout          {WEBSOCKET_TIMEOUT};
+        proxy_read_timeout          {WEBSOCKET_TIMEOUT};
+        send_timeout                {WEBSOCKET_TIMEOUT};
+    }}
+    location /$PRJ {{
+        proxy_pass {LOCAL_IP}:$PORT/$PRJ;
+
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $remote_addr;
+
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+
+        proxy_connect_timeout       {TIMEOUT};
+        proxy_send_timeout          {TIMEOUT};
+        proxy_read_timeout          {TIMEOUT};
+        send_timeout                {TIMEOUT};
+
+        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-Xss-Protection "1; mode=block" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header Referrer-Policy "same-origin";
+        add_header Permissions-Policy "autoplay=(), camera=(), geolocation=(), microphone=(), midi=()";
+        add_header Content-Security-Policy "default-src https: data: 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval';";
+    }}
+"""
+    CFG_END = f"""
+    location ~ (.*)/channel/$ {{
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_pass {LOCAL_IP}:$PORT2$1/channel/;
+        proxy_connect_timeout       {WEBSOCKET_TIMEOUT};
+        proxy_send_timeout          {WEBSOCKET_TIMEOUT};
+        proxy_read_timeout          {WEBSOCKET_TIMEOUT};
+        send_timeout                {WEBSOCKET_TIMEOUT};
+    }}
+
+    location / {{
+        proxy_pass {LOCAL_IP}:$PORT;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_connect_timeout       {TIMEOUT};
+        proxy_send_timeout          {TIMEOUT};
+        proxy_read_timeout          {TIMEOUT};
+        send_timeout                {TIMEOUT};
+
+        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-Xss-Protection "1; mode=block" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header Referrer-Policy "same-origin";
+        add_header Permissions-Policy "autoplay=(), camera=(), geolocation=(), microphone=(), midi=()";
+        add_header Content-Security-Policy "default-src https: data: 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval';";
+    }}
+}}
+"""
 
     CFG_ADDITIONAL = f"""
     
-    server {{
-               listen         80;
-               server_name    [host] www.[host];
-               return         301 https://[host]$request_uri;
-    }}
-    
-    server {{
-            listen 443 ssl http2;
-            client_max_body_size 50M;
-            server_name www.[host];
-            charset utf-8;
-    
-            ssl_certificate /etc/cert/fullchain.pem;
-            ssl_certificate_key /etc/cert/privkey.pem;
-    
-            return 301 https://[host]$request_uri;
-    }}
-    
-    map $http_upgrade $connection_upgrade {{
-            default upgrade;
-            ''      close;
-    }}
-    
-    server {{
-            listen 443 ssl http2;
-            client_max_body_size 50M;
-            server_name [host];
-            charset utf-8;
-    
-            ssl_certificate /etc/cert/fullchain.pem;
-            ssl_certificate_key /etc/cert/privkey.pem;
-    
-            location / {{
-                proxy_pass http://[service];
-                proxy_set_header Host $host;
-                proxy_set_header X-Real-IP $remote_addr;
-                proxy_set_header X-Forwarded-For $remote_addr;
-                proxy_connect_timeout       {ADDITIONAL_TIMEOUT};
-                proxy_send_timeout          {ADDITIONAL_TIMEOUT};
-                proxy_read_timeout          {ADDITIONAL_TIMEOUT};
-                send_timeout                {ADDITIONAL_TIMEOUT};
+server {{
+            listen         80;
+            server_name    [host] www.[host];
+            return         301 https://[host]$request_uri;
+}}
 
-                add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
-                add_header X-Frame-Options "SAMEORIGIN" always;
-                add_header X-Xss-Protection "1; mode=block" always;
-                add_header X-Content-Type-Options "nosniff" always;
-                add_header Referrer-Policy "same-origin";
-                add_header Permissions-Policy "autoplay=(), camera=(), geolocation=(), microphone=(), midi=()";
-                add_header Content-Security-Policy "default-src https: data: 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval';";                
-            }}
-    }}
+server {{
+        listen 443 ssl http2;
+        client_max_body_size 50M;
+        server_name www.[host];
+        charset utf-8;
+
+        ssl_certificate /etc/cert/fullchain.pem;
+        ssl_certificate_key /etc/cert/privkey.pem;
+
+        return 301 https://[host]$request_uri;
+}}
+
+map $http_upgrade $connection_upgrade {{
+        default upgrade;
+        ''      close;
+}}
+
+server {{
+        listen 443 ssl http2;
+        client_max_body_size 50M;
+        server_name [host];
+        charset utf-8;
+
+        ssl_certificate /etc/cert/fullchain.pem;
+        ssl_certificate_key /etc/cert/privkey.pem;
+
+        location / {{
+            proxy_pass http://[service];
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $remote_addr;
+            proxy_connect_timeout       {ADDITIONAL_TIMEOUT};
+            proxy_send_timeout          {ADDITIONAL_TIMEOUT};
+            proxy_read_timeout          {ADDITIONAL_TIMEOUT};
+            send_timeout                {ADDITIONAL_TIMEOUT};
+
+            add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+            add_header X-Frame-Options "SAMEORIGIN" always;
+            add_header X-Xss-Protection "1; mode=block" always;
+            add_header X-Content-Type-Options "nosniff" always;
+            add_header Referrer-Policy "same-origin";
+            add_header Permissions-Policy "autoplay=(), camera=(), geolocation=(), microphone=(), midi=()";
+            add_header Content-Security-Policy "default-src https: data: 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval';";                
+        }}
+}}
 """
 
     def create_sym_links(source_path, dest_path):
@@ -470,26 +474,29 @@ if __name__ == "__main__":
                     else NOWP["default-additional"]
                 )
 
-            server = f"gunicorn --preload -b 0.0.0.0:{port} --user www-data -w {count} {access_logfile} {error_logfile} wsgi -t {TIMEOUT}"
+            if ASGI_SERVER_ID == 1:
+                server = f"su -m www-data -s /bin/sh -c 'python -m waitress --listen=0.0.0.0:{port} --threads={count} {prj}.wsgi:application'"
+            else:
+                server = f"python -m gunicorn --preload -b 0.0.0.0:{port} --user www-data -w {count} {access_logfile} {error_logfile} {prj}.wsgi:application -t {TIMEOUT}"
             if prj in NO_ASGI:
                 asgi_server = None
             else:
-                server1 = f"hypercorn -b 0.0.0.0:{port+1} --user {uid} -w 1 {access_logfile} {error_logfile} asgi:application"
-                server2 = f"gunicorn --preload -b 0.0.0.0:{port+1} --user www-data -w 1 -k uvicorn.workers.UvicornH11Worker {access_logfile} {error_logfile} asgi:application -t {TIMEOUT}"
-                server3 = f"su -m www-data -s /bin/sh -c 'daphne -b 0.0.0.0 -p {port+1} --proxy-headers {access_log} asgi:application'"
+                server1 = f"python -m gunicorn --preload -b 0.0.0.0:{port+1} --user www-data -w 1 -k uvicorn.workers.UvicornH11Worker {access_logfile} {error_logfile} {prj}.asgi:application -t {TIMEOUT}"
+                server2 = f"su -m www-data -s /bin/sh -c 'python -m uvicorn --host 0.0.0.0 --port {port+1} {prj}.asgi:application'"
+                server3 = f"su -m www-data -s /bin/sh -c 'python -m daphne -b 0.0.0.0 -p {port+1} --proxy-headers {access_log} {prj}.asgi:application'"
                 asgi_server = (server1, server2, server3)[ASGI_SERVER_ID]
 
             path = f"{PRJ_PATH}/{prj}"
             if not os.path.exists(path):
                 path = f"{PRJ_PATH_ALT}/{prj}"
 
-            cmd = f"cd {path} && exec {server}"
+            cmd = f"{server}"
             print(cmd)
-            ret_tab.append(subprocess.Popen(cmd, shell=True))
+            ret_tab.append(subprocess.Popen(cmd, shell=True, env=env2))
             if asgi_server:
-                cmd = f"cd {path} && exec {asgi_server}"
+                cmd = f"{asgi_server}"
                 print(cmd)
-                ret_tab.append(subprocess.Popen(cmd, shell=True))
+                ret_tab.append(subprocess.Popen(cmd, shell=True, env=env2))
             port += 2
 
     if (
