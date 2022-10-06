@@ -298,55 +298,55 @@ server {{
     CFG_ADDITIONAL = f"""
     
 server {{
-            listen         80;
-            server_name    [host] www.[host];
-            return         301 https://[host]$request_uri;
+    listen         80;
+    server_name    [host] www.[host];
+    return         301 https://[host]$request_uri;
 }}
 
 server {{
-        listen 443 ssl http2;
-        client_max_body_size 50M;
-        server_name www.[host];
-        charset utf-8;
+    listen 443 ssl http2;
+    client_max_body_size 50M;
+    server_name www.[host];
+    charset utf-8;
 
-        ssl_certificate /etc/cert/fullchain.pem;
-        ssl_certificate_key /etc/cert/privkey.pem;
+    ssl_certificate /etc/cert/fullchain.pem;
+    ssl_certificate_key /etc/cert/privkey.pem;
 
-        return 301 https://[host]$request_uri;
+    return 301 https://[host]$request_uri;
 }}
 
 map $http_upgrade $connection_upgrade {{
-        default upgrade;
-        ''      close;
+    default upgrade;
+    ''      close;
 }}
 
 server {{
-        listen 443 ssl http2;
-        client_max_body_size 50M;
-        server_name [host];
-        charset utf-8;
+    listen 443 ssl http2;
+    client_max_body_size 50M;
+    server_name [host];
+    charset utf-8;
 
-        ssl_certificate /etc/cert/fullchain.pem;
-        ssl_certificate_key /etc/cert/privkey.pem;
+    ssl_certificate /etc/cert/fullchain.pem;
+    ssl_certificate_key /etc/cert/privkey.pem;
 
-        location / {{
-            proxy_pass http://[service];
-            proxy_set_header Host $host;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-For $remote_addr;
-            proxy_connect_timeout       {ADDITIONAL_TIMEOUT};
-            proxy_send_timeout          {ADDITIONAL_TIMEOUT};
-            proxy_read_timeout          {ADDITIONAL_TIMEOUT};
-            send_timeout                {ADDITIONAL_TIMEOUT};
+    location / {{
+        proxy_pass http://[service];
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_connect_timeout       {ADDITIONAL_TIMEOUT};
+        proxy_send_timeout          {ADDITIONAL_TIMEOUT};
+        proxy_read_timeout          {ADDITIONAL_TIMEOUT};
+        send_timeout                {ADDITIONAL_TIMEOUT};
 
-            add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
-            add_header X-Frame-Options "SAMEORIGIN" always;
-            add_header X-Xss-Protection "1; mode=block" always;
-            add_header X-Content-Type-Options "nosniff" always;
-            add_header Referrer-Policy "same-origin";
-            add_header Permissions-Policy "autoplay=(), camera=(), geolocation=(), microphone=(), midi=()";
-            add_header Content-Security-Policy "default-src https: data: 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval';";                
-        }}
+        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-Xss-Protection "1; mode=block" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header Referrer-Policy "same-origin";
+        add_header Permissions-Policy "autoplay=(), camera=(), geolocation=(), microphone=(), midi=()";
+        add_header Content-Security-Policy "default-src https: data: 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval';";                
+    }}
 }}
 """
 
