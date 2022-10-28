@@ -1,5 +1,5 @@
-name: pytigon
-version: "0.7"
+name: ptig
+version: "0.210"
 summary: "Pytigon summary"
 description: |
   Pytigon description
@@ -7,6 +7,7 @@ description: |
 grade: stable
 confinement: strict
 base: core20
+icon: snap/gui/ptig.png
 
 plugs:
   dot-config-pytigon:
@@ -15,27 +16,30 @@ plugs:
       - $HOME/.pytigon
 
 apps:
-  pytigon:
+  ptig:
     command: bin/python3.9 -m pytigon.ptig
     extensions: [gnome-3-38]
+    #desktop: usr/share/applications/ptig.desktop
+    #desktop: ${SNAP}/meta/gui/ptig.desktop
     plugs:
-      - unity7
+      #- unity7
       - audio-playback
       - home
       - network
       - dot-config-pytigon
+      - desktop
 
   python:
     command: bin/python3.9
     plugs:
-      - unity7
+      #- unity7
       - audio-playback
       - home
       - network
       - dot-config-pytigon
 
 parts:
-  pytigon:
+  ptig:
     plugin: python
     source: .
 
@@ -72,47 +76,30 @@ parts:
       - libtiff-dev
       - libwebkit2gtk-4.0-dev
       - libxtst-dev
-
+      - libpulse0
       - libssl-dev
-      #- libsdl1.2-dev
-      #- ibus-gtk3
-      #- libwebkit2gtk-4.0-dev
-      #- libwebkit2gtk-4.0-37
-      #- libwebkit2gtk-4.1-dev
       - zlib1g
-      #- libsm6
-      #- libslang2
-      #- libsdl1.2debian
-      #- libgtk2.0-0
-      #- libpcre3
-      #- liblzma5
       - libpython3.9-dev
       - libpython3.9-stdlib
-
-      #- libpython3.8-stdlib
-      #- libpython3.8-minimal
-      #- python3-pip
-      #- python3-setuptools
-      #- python3-wheel
-      #- python3-venv
-      #- python3-minimal
-      #- python3-distutils
-      #- python3-pkg-resources
       - python3.9-venv
       - python3.9
 
+      - postgresql-client
+      - postgresql-client-common
+      - libpq-dev
+
     python-packages:
-      #- setuptools
-      #- pip>9
+      - wheel
       - django<4
-      - h11<0.13
+      - autobahn
+      - reportlab
+      - svglib
       - cryptography==38.0.1
       - pyopenssl
       - pyjwt<3
       - pytigon-lib
       - pytigon
       - pytigon-batteries
-      #- https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-18.04/wxPython-4.1.1-cp36-cp36m-linux_x86_64.whl
       - https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-20.04/wxPython-4.2.0-cp39-cp39-linux_x86_64.whl
-      #- https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-22.04/wxPython-4.2.0-cp310-cp310-linux_x86_64.whl
       - pytigon-gui
+      - psycopg2-binary

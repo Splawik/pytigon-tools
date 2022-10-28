@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Pytigon
+Comment=Pytigon
+Exec=ptig
+Icon=${SNAP}/meta/gui/ptig.png
+StartupNotify=true
+Categories=Internet;
+Type=Application
