@@ -1,8 +1,8 @@
 [Desktop Entry]
-Name=Pytigon
-Comment=Pytigon
-Exec=ptig
+Name=Pytigon DevTools
+Comment=Pytigon developer tools
+Exec=ptig.devtools
 Icon=${SNAP}/meta/gui/ptig.png
 StartupNotify=true
-Categories=Internet;
+Categories=Development;
 Type=Application
