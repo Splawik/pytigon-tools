@@ -1,136 +1,95 @@
 name: ptig
-version: "0.210"
+version: "0.230812"
 summary: "Pytigon runtime and devtools"
 description: "Pytigon runtime and devtools"
 grade: stable
 confinement: strict
-base: core20
+base: core22
+architectures:
+  - build-on: [amd64]
 icon: snap/gui/ptig.png
-
-#plugs:
-#  dot-config-ptig:
-#    interface: personal-files
-#    write:
-#      - $HOME/.pytigon
 
 apps:
   ptig:
-    command: bin/python3.9 -m pytigon.ptig
-    extensions: [gnome-3-38]
+    command: bin/python3 -m pytigon.ptig
+    extensions: [gnome]
     plugs:
       - audio-playback
       - home
       - network
-      #- dot-config-ptig
+      - network-status
       - desktop
+      - desktop-legacy
       - wayland
-    environment:
-      LD_LIBRARY_PATH: $SNAP/usr/lib/x86_64-linux-gnu/webkit2gtk-4.0/:$LD_LIBRARY_PATH
 
   devtools:
-    command: bin/python3.9 -m pytigon.ptig schdevtools
-    extensions: [gnome-3-38]
+    command: bin/python3 -m pytigon.ptig schdevtools
+    extensions: [gnome]
     plugs:
       - audio-playback
       - home
       - network
-      #- dot-config-ptig
+      - network-status
       - desktop
+      - desktop-legacy
       - wayland
-    environment:
-      LD_LIBRARY_PATH: $SNAP/usr/lib/x86_64-linux-gnu/webkit2gtk-4.0/:$LD_LIBRARY_PATH
 
   demo:
-    command: bin/python3.9 -m pytigon.ptig schpytigondemo
-    extensions: [gnome-3-38]
+    command: bin/python3 -m pytigon.ptig schpytigondemo
+    extensions: [gnome]
     plugs:
       - audio-playback
       - home
       - network
-      #- dot-config-ptig
+      - network-status
       - desktop
-    environment:
-      LD_LIBRARY_PATH: $SNAP/usr/lib/x86_64-linux-gnu/webkit2gtk-4.0/:$LD_LIBRARY_PATH
+      - desktop-legacy
 
   python:
-    command: bin/python3.9
-    extensions: [gnome-3-38]
+    command: bin/python3
+    extensions: [gnome]
     plugs:
       - audio-playback
       - home
       - network
-      #- dot-config-ptig
-    environment:
-      LD_LIBRARY_PATH: $SNAP/usr/lib/x86_64-linux-gnu/webkit2gtk-4.0/:$LD_LIBRARY_PATH
-
-layout:
-  /usr/lib/$SNAPCRAFT_ARCH_TRIPLET/webkit2gtk-4.0:
-    bind: $SNAP/gnome-platform/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/webkit2gtk-4.0
 
 parts:
-  ptig:
+  ptig-parts:
     plugin: python
     source: .
 
-    build-environment:
-      - SNAPCRAFT_PYTHON_INTERPRETER: python3.9
-      - PATH: $SNAPCRAFT_PART_INSTALL/bin:$PATH
-      - PYTHONPATH: ""
-
-    build-packages:
-      - python3.9-venv
-      - python3.9-dev
-      - python3.9-distutils
-
-    override-build: |
-      # Work around a bug in snapcraft python plugin
-      # https://forum.snapcraft.io/t/build-a-snap-with-any-version-of-python-i-want/10420/8
-      rm -rf $SNAPCRAFT_PART_INSTALL/usr/lib/python3.9/distutils
-      cp -r /usr/lib/python3.9/distutils $SNAPCRAFT_PART_INSTALL/usr/lib/python3.9/distutils
-      mkdir -p $SNAPCRAFT_PART_INSTALL/usr/include/
-      cp -r /usr/include/python3.9 $SNAPCRAFT_PART_INSTALL/usr/include/python3.9
-      snapcraftctl build
-
     stage-packages:
       - freeglut3
-      # - freeglut3-dev
-      #- libgl1-mesa-dev
-      #- libglu1-mesa-dev
-      #- libgstreamer-plugins-base1.0-dev
-      #- libgtk-3-dev
       - libjpeg-dev
       - libnotify-dev
       - libsdl2-dev
       - libsm-dev
       - libtiff-dev
-      - libwebkit2gtk-4.0-dev
       - libwebkit2gtk-4.0-37
       - libxtst-dev
       - libpulse0
       - libssl-dev
       - zlib1g
-      - libpython3.9-dev
-      - libpython3.9-stdlib
-      - python3.9-venv
-      - python3.9
+      - libpython3-dev
+      - libpython3-stdlib
       - postgresql-client
       - postgresql-client-common
       - libpq-dev
       - libxkbcommon-dev
       - xkb-data
+      - libsdl2-2.0-0
+      - libsdl2-mixer-2.0-0
+      - libsdl2-image-2.0-0
 
     python-packages:
       - wheel
-      - django<4
       - autobahn
       - reportlab
       - svglib
-      - cryptography==38.0.1
       - pyopenssl
-      - pyjwt<3
       - pytigon-lib
       - pytigon
       - pytigon-batteries
-      - https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-20.04/wxPython-4.2.0-cp39-cp39-linux_x86_64.whl
+      - https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-22.04/wxPython-4.2.1-cp310-cp310-linux_x86_64.whl
       - pytigon-gui
       - psycopg2-binary
