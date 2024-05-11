@@ -211,6 +211,14 @@ server {{
         autoindex on;
     }}
 
+    location /site_media/ {{
+        alias {DATA_PATH}/$PRJ/media/;
+        autoindex on;
+    }}
+    location /media_protected/ {{
+        internal;
+        alias {DATA_PATH}/$PRJ/media_protected/;
+    }}
 """
     CFG_ELEM = f"""
     location /$PRJ/static/ {{
@@ -221,7 +229,7 @@ server {{
         alias {DATA_PATH}/$PRJ/media/;
         autoindex on;
     }}
-    location /$PRJ/site_media_protected/ {{
+    location /$PRJ/media_protected/ {{
         internal;
         alias {DATA_PATH}/$PRJ/media_protected/;
     }}
@@ -252,14 +260,7 @@ server {{
         proxy_send_timeout          {TIMEOUT};
         proxy_read_timeout          {TIMEOUT};
         send_timeout                {TIMEOUT};
-
-        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
-        add_header X-Frame-Options "SAMEORIGIN" always;
-        add_header X-Xss-Protection "1; mode=block" always;
-        add_header X-Content-Type-Options "nosniff" always;
-        add_header Referrer-Policy "same-origin";
-        add_header Permissions-Policy "autoplay=(), camera=(), geolocation=(), microphone=(), midi=()";
-        add_header Content-Security-Policy "default-src https: data: 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval';";
+        [CFG_SECURITY]
     }}
 """
     CFG_END = f"""
@@ -283,7 +284,12 @@ server {{
         proxy_send_timeout          {TIMEOUT};
         proxy_read_timeout          {TIMEOUT};
         send_timeout                {TIMEOUT};
+        [CFG_SECURITY]
+    }}
+}}
+"""
 
+    CFG_SECURITY = """
         add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
         add_header X-Frame-Options "SAMEORIGIN" always;
         add_header X-Xss-Protection "1; mode=block" always;
@@ -291,8 +297,6 @@ server {{
         add_header Referrer-Policy "same-origin";
         add_header Permissions-Policy "autoplay=(), camera=(), geolocation=(), microphone=(), midi=()";
         add_header Content-Security-Policy "default-src https: data: 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval';";
-    }}
-}}
 """
 
     CFG_ADDITIONAL = f"""
@@ -338,14 +342,7 @@ server {{
         proxy_send_timeout          {ADDITIONAL_TIMEOUT};
         proxy_read_timeout          {ADDITIONAL_TIMEOUT};
         send_timeout                {ADDITIONAL_TIMEOUT};
-
-        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
-        add_header X-Frame-Options "SAMEORIGIN" always;
-        add_header X-Xss-Protection "1; mode=block" always;
-        add_header X-Content-Type-Options "nosniff" always;
-        add_header Referrer-Policy "same-origin";
-        add_header Permissions-Policy "autoplay=(), camera=(), geolocation=(), microphone=(), midi=()";
-        add_header Content-Security-Policy "default-src https: data: 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval';";                
+        [CFG_SECURITY]
     }}
 }}
 """
@@ -379,8 +376,8 @@ server {{
             else:
                 PRJS.append(prj)
 
-    if "INCLUDE_SETUP" in environ:
-        PRJS.append("schsetup")
+    if "INCLUDE_MANAGE" in environ:
+        PRJS.append("schmanage")
     if "INCLUDE_DEVTOOLS" in environ:
         PRJS.append("schdevtools")
         NO_ASGI.append("schdevtools")
@@ -418,6 +415,7 @@ server {{
                 CFG_ELEM.replace("$PRJ", prj)
                 .replace("$PORT2", str(port2))
                 .replace("$PORT", str(port))
+                .replace("[CFG_SECURITY]", CFG_SECURITY if CRT else "")
             )
             port += 2
             port2 = port + 1
@@ -425,7 +423,9 @@ server {{
             if NGINX_INCLUDE:
                 conf.write("    include %s;\n\n" % NGINX_INCLUDE)
             conf.write(
-                CFG_END.replace("$PORT2", str(port2)).replace("$PORT", str(port))
+                CFG_END.replace("$PORT2", str(port2))
+                .replace("$PORT", str(port))
+                .replace("[CFG_SECURITY]", CFG_SECURITY if CRT else "")
             )
 
         if "ADDITIONAL_SERVICES" in environ:
@@ -434,9 +434,9 @@ server {{
                 if ":" in item:
                     host, service = item.strip().split(":", 1)
                     conf.write(
-                        CFG_ADDITIONAL.replace("[service]", service).replace(
-                            "[host]", host
-                        )
+                        CFG_ADDITIONAL.replace("[service]", service)
+                        .replace("[host]", host)
+                        .replace("[CFG_SECURITY]", CFG_SECURITY)
                     )
     if MAIN_PRJ and not MAIN_PRJ in PRJS:
         PRJS.append(MAIN_PRJ)
@@ -448,7 +448,6 @@ server {{
         environ["RUN_DJANGO"] and environ["RUN_DJANGO"] != "0"
     ):
         for prj in PRJS:
-
             static_path = os.path.join(DATA_PATH, "static", prj)
             if not os.path.exists(static_path):
                 os.makedirs(static_path)
