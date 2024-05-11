@@ -1,4 +1,4 @@
-ARG python_version=3.11
+ARG python_version=3.12
 
 FROM python:${python_version} as build
 
@@ -12,20 +12,13 @@ RUN pip install cryptography
 
 RUN pip install pytigon-lib
 RUN pip install pytigon
-RUN pip install pytigon-batteries
+RUN pip install pytigon-batteries[all]
 
 RUN pip install psycopg2-binary channels_redis django-environ
 
-RUN pip install pytigon-batteries
-RUN pip install git+https://github.com/Splawik/pytigon-batteries.git --upgrade
-RUN pip uninstall pytigon -y
-RUN pip install git+https://github.com/Splawik/pytigon.git
-RUN pip uninstall pytigon-lib -y
-RUN pip install git+https://github.com/Splawik/pytigon-lib.git
-
 FROM python:${python_version}-slim
 
-ARG python_version=3.11
+ARG python_version=3.12
 
 RUN apt-get update -y
 
@@ -48,8 +41,10 @@ RUN chown -R www-data:www-data /home/www-data && \
     rm /etc/nginx/sites-enabled/default
 
 RUN pip install gunicorn
+RUN pip install django --upgrade
 
 COPY --from=build /usr/local/lib/python${python_version}/site-packages/ /usr/local/lib/python${python_version}/site-packages/
+COPY --from=build /usr/local/bin/ptig /usr/local/bin/
 
 RUN apt-get install git -y
 RUN apt install -y libcairo2
