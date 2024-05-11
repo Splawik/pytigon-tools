@@ -1,3 +1,5 @@
+export TWINE_USERNAME=
+export TWINE_PASSWORD=
 cd pytigon-lib
 twine upload dist/*
 cd ..
