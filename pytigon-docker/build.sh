@@ -1,2 +1,3 @@
-docker build . -f Dockerfile -t splawik/docker-pytigon:latest
-docker push splawik/docker-pytigon:latest
+docker build . -f Dockerfile -t splawik/docker-pytigon:v0.240625
+docker push splawik/docker-pytigon:v0.240625
+

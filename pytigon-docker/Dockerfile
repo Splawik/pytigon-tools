@@ -14,7 +14,11 @@ RUN pip install pytigon-lib
 RUN pip install pytigon
 RUN pip install pytigon-batteries[all]
 
-RUN pip install psycopg2-binary channels_redis django-environ
+RUN pip install psycopg2-binary channels_redis sentry-sdk django-prometheus python3-openid
+
+RUN pip install git+https://github.com/Splawik/pytigon.git --upgrade --force-reinstall
+RUN pip install git+https://github.com/Splawik/pytigon-lib.git --upgrade --force-reinstall
+
 
 FROM python:${python_version}-slim
 
@@ -41,7 +45,6 @@ RUN chown -R www-data:www-data /home/www-data && \
     rm /etc/nginx/sites-enabled/default
 
 RUN pip install gunicorn
-RUN pip install django --upgrade
 
 COPY --from=build /usr/local/lib/python${python_version}/site-packages/ /usr/local/lib/python${python_version}/site-packages/
 COPY --from=build /usr/local/bin/ptig /usr/local/bin/

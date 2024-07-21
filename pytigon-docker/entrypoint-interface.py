@@ -4,7 +4,6 @@ import subprocess
 import os
 import sys
 import pwd
-import os
 from os import environ
 
 
@@ -42,8 +41,11 @@ if __name__ == "__main__":
     sys.path.append(BASE_APPS_PATH)
     sys.path.append(PRJ_PATH_ALT)
 
-    env2 = os.environ.copy()
-    env2["PYTHONPATH"] = BASE_APPS_PATH + ":" + PRJ_PATH_ALT
+    env1 = os.environ.copy()
+    env1["PYTHONPATH"] = BASE_APPS_PATH + ":" + PRJ_PATH_ALT
+    env2 = env1.copy()
+    env2["PUBLISH_IN_SUBFOLDER"] = "_"
+    env3 = env1.copy()
 
     uid, gid = pwd.getpwnam("www-data").pw_uid, pwd.getpwnam("www-data").pw_uid
 
@@ -202,13 +204,18 @@ server {{
     client_max_body_size 50M;
     server_name {VIRTUAL_HOST};
     charset utf-8;
-
+    resolver 127.0.0.11 valid=10s ipv6=off;
+    resolver_timeout 5s; 
+    
     {CRT}
     {KEY}
 
-    location /static/ {{
+    location ^~ /static/ {{
         alias {STATIC_PATH}/$PRJ/;
         autoindex on;
+        expires 1M;
+        add_header Cache-Control "max-age=2629746, public";
+
     }}
 
     location /site_media/ {{
@@ -220,32 +227,39 @@ server {{
         alias {DATA_PATH}/$PRJ/media_protected/;
     }}
 """
+
     CFG_ELEM = f"""
-    location /$PRJ/static/ {{
+    location ^~ /$SUBPRJ/static/ {{
         alias {STATIC_PATH}/$PRJ/;
         autoindex on;
+        expires 1M;
+        add_header Cache-Control "max-age=2629746, public";
     }}
-    location /$PRJ/site_media/ {{
-        alias {DATA_PATH}/$PRJ/media/;
+    location /$SUBPRJ/site_media/ {{
+        alias {DATA_PATH}/$SUBPRJ/media/;
         autoindex on;
     }}
-    location /$PRJ/media_protected/ {{
+    location /$SUBPRJ/media_protected/ {{
         internal;
-        alias {DATA_PATH}/$PRJ/media_protected/;
+        alias {DATA_PATH}/$SUBPRJ/media_protected/;
     }}
-    location ~ /$PRJ(.*)/channel/$ {{
+    location ~ ^/$SUBPRJ/(.*)/channel/$ {{
         proxy_http_version 1.1;
 
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_pass {LOCAL_IP}:$PORT2/$PRJ$1/channel/;
+
+        set $$PRJ_backend "{LOCAL_IP}:$PORT2";
+        proxy_pass $$PRJ_backend/$SUBPRJ/$1/channel/$is_args$args;
+
         proxy_connect_timeout       {WEBSOCKET_TIMEOUT};
         proxy_send_timeout          {WEBSOCKET_TIMEOUT};
         proxy_read_timeout          {WEBSOCKET_TIMEOUT};
         send_timeout                {WEBSOCKET_TIMEOUT};
     }}
-    location /$PRJ {{
-        proxy_pass {LOCAL_IP}:$PORT/$PRJ;
+    location ~ ^/$SUBPRJ/(.*)$ {{
+        set  $$PRJ_backend "{LOCAL_IP}:$PORT/$SUBPRJ";
+        proxy_pass $$PRJ_backend/$1$is_args$args;
 
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -263,20 +277,26 @@ server {{
         [CFG_SECURITY]
     }}
 """
+
     CFG_END = f"""
-    location ~ (.*)/channel/$ {{
+    location ~ ^/(.*)/channel/$ {{
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        proxy_pass {LOCAL_IP}:$PORT2$1/channel/;
+        
+        set $backend_channel "{LOCAL_IP}:$PORT2";
+        proxy_pass $backend_channel/$1/channel/$is_args$args;
+        
         proxy_connect_timeout       {WEBSOCKET_TIMEOUT};
         proxy_send_timeout          {WEBSOCKET_TIMEOUT};
         proxy_read_timeout          {WEBSOCKET_TIMEOUT};
         send_timeout                {WEBSOCKET_TIMEOUT};
     }}
 
-    location / {{
-        proxy_pass {LOCAL_IP}:$PORT;
+    location ~ ^/(.*)$ {{
+        set $backend "{LOCAL_IP}:$PORT";
+        proxy_pass $backend/$1$is_args$args;
+
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $remote_addr;
@@ -333,8 +353,10 @@ server {{
     ssl_certificate /etc/cert/fullchain.pem;
     ssl_certificate_key /etc/cert/privkey.pem;
 
-    location / {{
-        proxy_pass http://[service];
+    location ~ ^/(.*)$ {{
+        set $$PRJ_backend http://[service];
+        proxy_pass $$PRJ_backend$1$is_args$args;
+        
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $remote_addr;
@@ -356,98 +378,91 @@ server {{
                 if not os.path.exists(d_path):
                     os.symlink(s_path, d_path)
 
-    for ff in os.listdir(BASE_APPS_PATH):
-        if os.path.isdir(os.path.join(BASE_APPS_PATH, ff)):
-            if not ff.startswith("_"):
-                PRJ_FOLDERS.append(ff)
-
-    for prj in PRJ_FOLDERS:
-        base_apps_pack2 = os.path.join(BASE_APPS_PATH, prj)
-        try:
-            x = __import__(prj + ".apps")
-        except:
-            continue
-        if hasattr(x.apps, "NO_ASGI") and x.apps.NO_ASGI:
-            NO_ASGI.append(prj)
-
-        if hasattr(x.apps, "PUBLIC") and x.apps.PUBLIC:
-            if hasattr(x.apps, "MAIN_PRJ") and x.apps.MAIN_PRJ:
-                MAIN_PRJ = prj
-            else:
-                PRJS.append(prj)
-
-    if "INCLUDE_MANAGE" in environ:
-        PRJS.append("schmanage")
-    if "INCLUDE_DEVTOOLS" in environ:
-        PRJS.append("schdevtools")
-        NO_ASGI.append("schdevtools")
-    if "INCLUDE_PORTAL" in environ:
-        PRJS.append("schportal")
-        NO_ASGI.append("schportal")
-
     if "MAIN_PRJ" in environ:
         MAIN_PRJ = environ["MAIN_PRJ"]
-        try:
-            x = __import__(MAIN_PRJ + ".apps")
-            if hasattr(x.apps, "NO_ASGI") and x.apps.NO_ASGI:
-                NO_ASGI.append(MAIN_PRJ)
-        except:
-            pass
+    else:
+        MAIN_PRJ = None
 
-    if not MAIN_PRJ and len(PRJS) == 1:
-        MAIN_PRJ = PRJS[0]
-        PRJS = []
+    if "ADDITIONAL_PROJECTS" in environ:
+        projects = [
+            prj
+            for prj in environ["ADDITIONAL_PROJECTS"].replace(",", ";").split(";")
+            if prj
+        ]
+        for prj in projects:
+            PRJS.append(prj)
 
-    with open("/etc/nginx/sites-available/pytigon", "wt") as conf:
-        if PORT_80_REDIRECT:
-            conf.write(CFG_OLD)
+    if not ("NO_NGINX_CONF" in environ and environ["NO_NGINX_CONF"]):
+        with open("/etc/nginx/sites-available/pytigon", "wt") as conf:
+            if PORT_80_REDIRECT:
+                conf.write(CFG_OLD)
 
-        conf.write(CFG_START.replace("$PRJ", MAIN_PRJ))
+            conf.write(CFG_START.replace("$PRJ", MAIN_PRJ))
 
-        port = START_PORT
-        port2 = port + 1
-        for prj in PRJS:
-            path = f"{PRJ_PATH}/{prj}/static/{prj}"
-            if not os.path.exists(path):
-                path = f"{PRJ_PATH_ALT}/{prj}/static/{prj}"
-
-            conf.write(
-                CFG_ELEM.replace("$PRJ", prj)
-                .replace("$PORT2", str(port2))
-                .replace("$PORT", str(port))
-                .replace("[CFG_SECURITY]", CFG_SECURITY if CRT else "")
-            )
-            port += 2
+            port = START_PORT + 2
             port2 = port + 1
-        if MAIN_PRJ:
-            if NGINX_INCLUDE:
-                conf.write("    include %s;\n\n" % NGINX_INCLUDE)
-            conf.write(
-                CFG_END.replace("$PORT2", str(port2))
-                .replace("$PORT", str(port))
-                .replace("[CFG_SECURITY]", CFG_SECURITY if CRT else "")
-            )
+            for prj in PRJS:
+                if "-" in prj:
+                    x = prj.split("-")
+                    prj = x[0]
+                    subprj = x[1]
+                else:
+                    subprj = prj
+                path = f"{PRJ_PATH}/{prj}/static/{prj}"
+                if not os.path.exists(path):
+                    path = f"{PRJ_PATH_ALT}/{prj}/static/{prj}"
+                conf.write(
+                    CFG_ELEM.replace("$PRJ", prj)
+                    .replace("$SUBPRJ", subprj)
+                    .replace("$PORT2", str(port2))
+                    .replace("$PORT", str(port))
+                    .replace("[CFG_SECURITY]", CFG_SECURITY if CRT else "")
+                )
+                port += 2
+                port2 = port + 1
+            if MAIN_PRJ:
+                if NGINX_INCLUDE:
+                    conf.write("    include %s;\n\n" % NGINX_INCLUDE)
+                conf.write(
+                    CFG_END.replace("$PORT2", str(START_PORT + 1))
+                    .replace("$PORT", str(START_PORT))
+                    .replace("[CFG_SECURITY]", CFG_SECURITY if CRT else "")
+                )
 
-        if "ADDITIONAL_SERVICES" in environ:
-            additional_services = environ["ADDITIONAL_SERVICES"].split(";")
-            for item in additional_services:
-                if ":" in item:
-                    host, service = item.strip().split(":", 1)
-                    conf.write(
-                        CFG_ADDITIONAL.replace("[service]", service)
-                        .replace("[host]", host)
-                        .replace("[CFG_SECURITY]", CFG_SECURITY)
-                    )
-    if MAIN_PRJ and not MAIN_PRJ in PRJS:
-        PRJS.append(MAIN_PRJ)
+            if "ADDITIONAL_SERVICES" in environ:
+                additional_services = environ["ADDITIONAL_SERVICES"].split(";")
+                for item in additional_services:
+                    if ":" in item:
+                        host, service = item.strip().split(":", 1)
+                        prj = service.split(":")[0]
+                        conf.write(
+                            CFG_ADDITIONAL.replace("[service]", service)
+                            .replace("$PRJ", prj)
+                            .replace("[host]", host)
+                            .replace("[CFG_SECURITY]", CFG_SECURITY)
+                        )
+    if MAIN_PRJ:
+        PRJS.insert(0, MAIN_PRJ)
+    else:
+        PRJS.insert(0, "")
 
     port = START_PORT
     ret_tab = []
 
-    if not "RUN_DJANGO" in environ or (
+    if "RUN_DJANGO" not in environ or (
         environ["RUN_DJANGO"] and environ["RUN_DJANGO"] != "0"
     ):
+        main_prj = True
         for prj in PRJS:
+            if not prj:
+                main_prj = False
+                port += 2
+                continue
+
+            subprj = "_"
+            if "-" in prj:
+                prj, subprj = prj.split("-")
+
             static_path = os.path.join(DATA_PATH, "static", prj)
             if not os.path.exists(static_path):
                 os.makedirs(static_path)
@@ -477,7 +492,12 @@ server {{
                 server = f"su -m www-data -s /bin/sh -c 'python -m waitress --listen=0.0.0.0:{port} --threads={count} {prj}.wsgi:application'"
             else:
                 server = f"python -m gunicorn --preload -b 0.0.0.0:{port} --user www-data -w {count} {access_logfile} {error_logfile} {prj}.wsgi:application -t {TIMEOUT}"
-            if prj in NO_ASGI:
+
+            try:
+                x = __import__(prj + ".apps")
+            except:
+                continue
+            if hasattr(x.apps, "NO_ASGI") and x.apps.NO_ASGI:
                 asgi_server = None
             else:
                 server1 = f"python -m gunicorn --preload -b 0.0.0.0:{port+1} --user www-data -w 1 -k uvicorn.workers.UvicornH11Worker {access_logfile} {error_logfile} {prj}.asgi:application -t {TIMEOUT}"
@@ -485,18 +505,28 @@ server {{
                 server3 = f"su -m www-data -s /bin/sh -c 'python -m daphne -b 0.0.0.0 -p {port+1} --proxy-headers {access_log} {prj}.asgi:application'"
                 asgi_server = (server1, server2, server3)[ASGI_SERVER_ID]
 
+            if main_prj:
+                e = env1
+            else:
+                if subprj:
+                    env3["PUBLISH_IN_SUBFOLDER"] = subprj
+                    e = env3
+                else:
+                    e = env2
+
             path = f"{PRJ_PATH}/{prj}"
             if not os.path.exists(path):
                 path = f"{PRJ_PATH_ALT}/{prj}"
 
             cmd = f"{server}"
             print(cmd)
-            ret_tab.append(subprocess.Popen(cmd, shell=True, env=env2))
+            ret_tab.append(subprocess.Popen(cmd, shell=True, env=e))
             if asgi_server:
                 cmd = f"{asgi_server}"
                 print(cmd)
-                ret_tab.append(subprocess.Popen(cmd, shell=True, env=env2))
+                ret_tab.append(subprocess.Popen(cmd, shell=True, env=e))
             port += 2
+            main_prj = False
 
     if (
         "RUN_TASKS_QUEUE" in environ
@@ -525,7 +555,7 @@ server {{
             )
             ret_tab.append(subprocess.Popen(cmd, shell=True))
 
-    if not "RUN_NGINX" in environ or (
+    if "RUN_NGINX" not in environ or (
         environ["RUN_NGINX"] and environ["RUN_NGINX"] != "0"
     ):
         restart = subprocess.Popen("nginx -g 'daemon off;'", shell=True)

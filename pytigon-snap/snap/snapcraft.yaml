@@ -1,5 +1,5 @@
 name: ptig
-version: "0.230812"
+version: "0.240228"
 summary: "Pytigon runtime and devtools"
 description: "Pytigon runtime and devtools"
 grade: stable
@@ -54,9 +54,22 @@ apps:
       - network
 
 parts:
-  ptig-parts:
+  ptig-parts1:
     plugin: python
     source: .
+
+    python-packages:
+      - wheel
+      - autobahn
+      - reportlab
+      - svglib
+      - pyopenssl
+      - pytigon-lib
+      - pytigon
+      - pytigon-batteries
+      - https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-22.04/wxPython-4.2.1-cp310-cp310-linux_x86_64.whl
+      - pytigon-gui
+      - psycopg2-binary
 
     stage-packages:
       - freeglut3
@@ -80,16 +93,3 @@ parts:
       - libsdl2-2.0-0
       - libsdl2-mixer-2.0-0
       - libsdl2-image-2.0-0
-
-    python-packages:
-      - wheel
-      - autobahn
-      - reportlab
-      - svglib
-      - pyopenssl
-      - pytigon-lib
-      - pytigon
-      - pytigon-batteries
-      - https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-22.04/wxPython-4.2.1-cp310-cp310-linux_x86_64.whl
-      - pytigon-gui
-      - psycopg2-binary

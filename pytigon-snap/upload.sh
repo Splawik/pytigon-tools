@@ -1,0 +1,1 @@
+snapcraft upload --release=beta ./ptig_0.240228_amd64.snap

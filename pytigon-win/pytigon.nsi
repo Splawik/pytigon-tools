@@ -1,7 +1,8 @@
 Unicode true
+SetCompressor /SOLID lzma
+;SetCompress off
 
 !include "MUI2.nsh"
-!include "EnvVarUpdate.nsh"
 
 Name "Pytigon"
 
@@ -40,11 +41,11 @@ Section "Pytigon"
   SectionIn 1
   SetOutPath $INSTDIR\python
   File /r /x *.pyo /x __pycache__  python\*.*
-  SetOutPath $PROFILE\.pytigon\ext_prg
-  File /r  /x __pycache__ /x *.pyc /x *.pyo ext_prg\*.*
+  ;SetOutPath $PROFILE\.pytigon\ext_prg
+  ;File /r  /x __pycache__ /x *.pyc /x *.pyo ext_prg\*.*
 
   SetOutPath $INSTDIR
-  File ptig.exe
+  File ptig.cmd
   File ptigw.exe
   File LICENSE
 
@@ -67,8 +68,8 @@ Section "Pytigon"
   ;Create uninstaller
   WriteUninstaller "$INSTDIR\Uninstall.exe"
 
-  ${EnvVarUpdate} $0 "PATH" "A" "HKCU" $INSTDIR
-
+  EnVar::SetHKCU
+  EnVar::AddValueEx "PATH" "$INSTDIR"
 
   WriteRegStr HKCU "Software\pytigon" "" $INSTDIR
 
@@ -80,9 +81,9 @@ SectionEnd
 Section "Visual C++ Redistributable"
   SectionIn 2
   SetOutPath "$TEMP"
-  File ".\install\vcredist_x86.exe"
-  ExecWait '"$TEMP\vcredist_x86.exe" /passive /norestart'
-  Delete "$TEMP\vcredist_x86.exe"
+  File ".\install\vcredist_x64.exe"
+  ExecWait '"$TEMP\vcredist_x64.exe" /passive /norestart'
+  Delete "$TEMP\vcredist_x64.exe"
 SectionEnd
 
 
@@ -91,7 +92,8 @@ SectionEnd
 
 Section "Uninstall"
 
-  ${un.EnvVarUpdate} $0 "PATH" "A" "HKCU" $INSTDIR
+  EnVar::SetHKCU
+  EnVar::DeleteValue "PATH" "$INSTDIR"
 
   Delete "$INSTDIR\Uninstall.exe"
 

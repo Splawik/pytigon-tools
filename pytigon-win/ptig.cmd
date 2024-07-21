@@ -1,1 +1,1 @@
-@%~dp0python\python.exe -m pytigon.ptig %*
+"%~dp0python\python.exe" -m pytigon.ptig %*

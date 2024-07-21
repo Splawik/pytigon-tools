@@ -1,1 +1,1 @@
-Put vcredist_x86.exe here
+Put vcredist_x64.exe here
