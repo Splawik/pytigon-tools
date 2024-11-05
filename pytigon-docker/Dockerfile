@@ -16,10 +16,6 @@ RUN pip install pytigon-batteries[all]
 
 RUN pip install psycopg2-binary channels_redis sentry-sdk django-prometheus python3-openid
 
-RUN pip install git+https://github.com/Splawik/pytigon.git --upgrade --force-reinstall
-RUN pip install git+https://github.com/Splawik/pytigon-lib.git --upgrade --force-reinstall
-
-
 FROM python:${python_version}-slim
 
 ARG python_version=3.12

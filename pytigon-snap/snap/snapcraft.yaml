@@ -1,12 +1,10 @@
 name: ptig
-version: "0.240228"
+version: "0.241101"
 summary: "Pytigon runtime and devtools"
 description: "Pytigon runtime and devtools"
 grade: stable
 confinement: strict
-base: core22
-architectures:
-  - build-on: [amd64]
+base: core24
 icon: snap/gui/ptig.png
 
 apps:
@@ -21,6 +19,9 @@ apps:
       - desktop
       - desktop-legacy
       - wayland
+    environment:
+      "LD_LIBRARY_PATH": "$SNAP/usr/lib/x86_64-linux-gnu/webkit2gtk-4.1/:$LD_LIBRARY_PATH:$SNAP/usr/lib/python3/dist-packages"
+      "PYTHONPATH": "$PYTHONPATH:$SNAP/usr/lib/python3/dist-packages"
 
   devtools:
     command: bin/python3 -m pytigon.ptig schdevtools
@@ -33,6 +34,9 @@ apps:
       - desktop
       - desktop-legacy
       - wayland
+    environment:
+      "LD_LIBRARY_PATH": "$SNAP/usr/lib/x86_64-linux-gnu/webkit2gtk-4.1/:$LD_LIBRARY_PATH:$SNAP/usr/lib/python3/dist-packages"
+      "PYTHONPATH": "$PYTHONPATH:$SNAP/usr/lib/python3/dist-packages"
 
   demo:
     command: bin/python3 -m pytigon.ptig schpytigondemo
@@ -44,6 +48,10 @@ apps:
       - network-status
       - desktop
       - desktop-legacy
+      - wayland
+    environment:
+      "LD_LIBRARY_PATH": "$SNAP/usr/lib/x86_64-linux-gnu/webkit2gtk-4.1/:$LD_LIBRARY_PATH:$SNAP/usr/lib/python3/dist-packages"
+      "PYTHONPATH": "$PYTHONPATH:$SNAP/usr/lib/python3/dist-packages"
 
   python:
     command: bin/python3
@@ -52,11 +60,18 @@ apps:
       - audio-playback
       - home
       - network
+      - wayland
+    environment:
+      "LD_LIBRARY_PATH": "$SNAP/usr/lib/x86_64-linux-gnu/webkit2gtk-4.1/:$LD_LIBRARY_PATH:$SNAP/usr/lib/python3/dist-packages"
+      "PYTHONPATH": "$PYTHONPATH:$SNAP/usr/lib/python3/dist-packages"
 
 parts:
   ptig-parts1:
     plugin: python
     source: .
+
+    build-environment:
+      - PYTHONPATH: "$SNAPCRAFT_PART_INSTALL/usr/lib/python3/dist-packages"
 
     python-packages:
       - wheel
@@ -64,22 +79,13 @@ parts:
       - reportlab
       - svglib
       - pyopenssl
-      - pytigon-lib
-      - pytigon
-      - pytigon-batteries
-      - https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-22.04/wxPython-4.2.1-cp310-cp310-linux_x86_64.whl
       - pytigon-gui
       - psycopg2-binary
 
     stage-packages:
-      - freeglut3
-      - libjpeg-dev
-      - libnotify-dev
-      - libsdl2-dev
-      - libsm-dev
-      - libtiff-dev
-      - libwebkit2gtk-4.0-37
-      - libxtst-dev
+      - python3-wxgtk4.0
+      - python3-wxgtk-webview4.0
+      - python3-wxgtk-media4.0
       - libpulse0
       - libssl-dev
       - zlib1g
@@ -93,3 +99,14 @@ parts:
       - libsdl2-2.0-0
       - libsdl2-mixer-2.0-0
       - libsdl2-image-2.0-0
+      - libtbb-dev
+
+  gpu-2404:
+    after: [ptig-parts1]
+    source: https://github.com/canonical/gpu-snap.git
+    plugin: dump
+    override-prime: |
+      craftctl default
+      ${CRAFT_PART_SRC}/bin/gpu-2404-cleanup mesa-2404
+    prime:
+      - bin/gpu-2404-wrapper

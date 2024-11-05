@@ -1,0 +1,1 @@
+ snap install ptig_0.241101_amd64.snap --dangerous
