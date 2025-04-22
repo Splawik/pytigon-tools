@@ -1,4 +1,4 @@
-ARG python_version=3.12
+ARG python_version=3.13
 
 FROM python:${python_version} as build
 
@@ -18,7 +18,7 @@ RUN pip install psycopg2-binary channels_redis sentry-sdk django-prometheus pyth
 
 FROM python:${python_version}-slim
 
-ARG python_version=3.12
+ARG python_version=3.13
 
 RUN apt-get update -y
 

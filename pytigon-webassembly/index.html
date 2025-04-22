@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="pl">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="/manifest.json" />
+    <title>Ładowanie...</title>
+  </head>
+  <body>
+    <style>
+      body {
+          margin: 0;
+          padding: 0;
+          background-color: #f0f0f0;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          height: 100vh;
+          overflow: hidden;
+          font-family: 'Arial', sans-serif;
+      }
+      
+      .loading-container {
+          position: relative;
+          width: 100%;
+          height: 100%;
+      }
+      
+      .loading-text {
+          position: absolute;
+          bottom: 20%;
+          left: 50%;
+          transform: translateX(-50%);
+          color: #333;
+          font-size: 1.5rem;
+          text-align: center;
+          z-index: 10;
+      }
+      
+      .pulse {
+          animation: pulse 2s infinite alternate;
+      }
+      
+      @keyframes pulse {
+          0% { opacity: 0.6; }
+          100% { opacity: 1; }
+      }
+      
+      .rotate {
+          animation: rotate 12s linear infinite;
+          transform-origin: center;
+      }
+      
+      @keyframes rotate {
+          100% { transform: rotate(360deg); }
+      }
+      
+      .float {
+          animation: float 8s ease-in-out infinite;
+      }
+      
+      @keyframes float {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-20px); }
+      }
+      
+      .scale {
+          animation: scale 4s ease-in-out infinite alternate;
+      }
+      
+      @keyframes scale {
+          0% { transform: scale(0.95); }
+          100% { transform: scale(1.05); }
+      }
+      
+      .color-shift {
+          animation: colorShift 10s linear infinite;
+      }
+      
+      @keyframes colorShift {
+          0% { fill: #4a6da7; }
+          25% { fill: #a74a6d; }
+          50% { fill: #6da74a; }
+          75% { fill: #6d4aa7; }
+          100% { fill: #4a6da7; }
+      }
+  </style>
+    <div class="loading-container">
+      <svg width="100%" height="100vh" viewBox="0 0 800 600"
+        xmlns="http://www.w3.org/2000/svg">
+        <!-- Duże koło w tle -->
+        <circle cx="400" cy="300" r="150" fill="#4a6da7" opacity="0.1"
+          class="scale" />
+
+        <!-- Abstrakcyjne kształty w stylu Kandinsky'ego -->
+        <rect x="200" y="200" width="80" height="80" fill="#a74a6d"
+          opacity="0.8" class="rotate" transform-origin="240 240" />
+
+        <circle cx="500" cy="250" r="60" fill="#6da74a" opacity="0.7"
+          class="float" />
+
+        <polygon points="300,400 350,350 400,400 350,450" fill="#4aa7a7"
+          opacity="0.8" class="pulse" />
+
+        <ellipse cx="600" cy="400" rx="70" ry="40" fill="#a74a6d" opacity="0.6"
+          class="rotate" transform-origin="600 400" />
+
+        <path d="M150 450 Q 250 350 350 450 T 550 450" stroke="#6d4aa7"
+          stroke-width="8" fill="none" class="float" />
+
+        <rect x="500" y="100" width="40" height="120" fill="#4aa7a7"
+          opacity="0.7" class="color-shift" />
+
+        <circle cx="250" cy="150" r="30" fill="#6da74a" opacity="0.9"
+          class="pulse" />
+
+        <polygon points="650,200 700,150 750,200 700,250" fill="#a74a6d"
+          opacity="0.7" class="rotate" transform-origin="700 200" />
+
+        <!-- Linie łączące -->
+        <line x1="400" y1="300" x2="500" y2="250" stroke="#333" stroke-width="2"
+          stroke-dasharray="5,5" opacity="0.4" />
+        <line x1="400" y1="300" x2="350" y2="350" stroke="#333" stroke-width="2"
+          stroke-dasharray="5,5" opacity="0.4" />
+        <line x1="400" y1="300" x2="600" y2="400" stroke="#333" stroke-width="2"
+          stroke-dasharray="5,5" opacity="0.4" />
+
+        <!-- Małe kropki -->
+        <circle cx="450" cy="450" r="5" fill="#333" class="pulse" />
+        <circle cx="380" cy="180" r="5" fill="#333" class="pulse" />
+        <circle cx="620" cy="320" r="5" fill="#333" class="pulse" />
+      </svg>
+
+      <div class="loading-text">
+        Ładowanie... Proszę czekać
+        <div style="margin-top: 10px; font-size: 0.8rem;">Twój portal wkrótce
+          będzie gotowy</div>
+      </div>
+    </div>
+    <script>
+      if (window.top.location.search.substring(1)) {
+        window.PYTIGON_PRJ_NAME = window.top.location.search.substring(1)
+      } else {
+        window.PYTIGON_PRJ_NAME = 'in_browser_demo'
+      }
+    </script>
+    <script src="./app.js"></script>
+  </body>
+</html>
