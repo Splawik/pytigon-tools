@@ -1,4 +1,4 @@
-importScripts('https://cdn.jsdelivr.net/pyodide/v0.27.4/full/pyodide.js')
+importScripts('https://cdn.jsdelivr.net/pyodide/v0.27.5/full/pyodide.js')
 importScripts('https://cdn.jsdelivr.net/npm/xhr-shim@0.1.3/src/index.min.js')
 
 self.XMLHttpRequest = self.XMLHttpRequestShim
@@ -14,13 +14,14 @@ const HOST = new URL(location).searchParams.get('HOST')
 var PYTIGON_INIT = `
 print("PYTIGON_INIT - B1")
 import os
+import sys
 import pyodide.http
 import json
 print("PYTIGON_INIT - B2")
 
 os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
 os.environ["SECRET_KEY"] = "anawa"
-os.environ["PYTIGON_DEBUG"] = "false"
+#os.environ["PYTIGON_DEBUG"] = "false"
 os.environ["MAILER"] = "false"
 os.environ["PYTIGON_PASSWORD_HASHERS"] = "['django.contrib.auth.hashers.BCryptSHA256PasswordHasher']"
 os.environ["PUBLISH_IN_SUBFOLDER"] = "_" 
@@ -42,12 +43,15 @@ else:
 print("PYTIGON_INIT - B4")
 
 from pytigon.pytigon_request import init, request
+#import pytigon.schserw.settings
+#setattr(pytigon.schserw.settings, "_PRJ_PATH_ALT", "/home/pyodide/pytigon_data/prj/")
+#sys.path.append("/home/pyodide/pytigon_data/prj/in_web_browser2")
 print("PYTIGON_INIT - B5")
 
 if ptig_installer:
-    init("{{PRJ_NAME}}", "{{USER}}", "{{PASSWORD}}", user_agent="WebKit",  ptig_installer=ptig_installer)
+    init("{{PRJ_NAME}}", user_agent="WebKit",  ptig_installer=ptig_installer)
 else:
-    init("{{PRJ_NAME}}", "{{USER}}", "{{PASSWORD}}", user_agent="WebKit")
+    init("{{PRJ_NAME}}", user_agent="WebKit")
 print("PYTIGON_INIT - B6")
 
 from django.conf import settings
@@ -74,27 +78,43 @@ callback_func = function (err) {
   }
 }
 
-async function installPython () {
+async function installPythonold () {
   await PYODIDE.loadPackage('micropip')
-  await PYODIDE.loadPackage('aiohttp')
-  await PYODIDE.loadPackage('multidict')
+  //await PYODIDE.loadPackage('aiohttp')
+  //await PYODIDE.loadPackage('multidict')
   await PYODIDE.loadPackage('sqlite3')
   await PYODIDE.loadPackage('tzdata')
   const micropip = PYODIDE.pyimport('micropip')
   await micropip.install('lzma')
-  await micropip.install(`${HOST}/wheel/http_ece-1.2.1-py2.py3-none-any.whl`)
+  //await micropip.install(`${HOST}/wheel/http_ece-1.2.1-py2.py3-none-any.whl`)
   await micropip.install('pytigon-lib')
   //await micropip.install(`${HOST}/wheel/pytigon_lib-0.250419-py3-none-any.whl`)
-  await micropip.install('cryptography')
-  await micropip.install('requests')
-  await micropip.install('six')
-  await micropip.install('py-vapid')
+  //await micropip.install('cryptography')
+  //await micropip.install('requests')
+  //await micropip.install('six')
+  //await micropip.install('py-vapid')
   await micropip.install('webtest')
-  await micropip.install('pywebpush')
-  await micropip.install('django-pwa-webpush')
+  //await micropip.install('pywebpush')
+  //await micropip.install('django-pwa-webpush')
   await micropip.install('bcrypt')
   await micropip.install('pytigon')
+  //await micropip.install('django_compressor')
   //await micropip.install(`${HOST}/wheel/pytigon-0.250419-py3-none-any.whl`)
+}
+
+
+async function installPython () {
+  console.log("INSTALL!")
+  await PYODIDE.loadPackage('micropip')
+  await PYODIDE.loadPackage('sqlite3')
+  await PYODIDE.loadPackage('tzdata')
+  const micropip = PYODIDE.pyimport('micropip')
+  await micropip.install('lzma')
+  await micropip.install('lxml')
+  await micropip.install('bcrypt')
+  await micropip.install('pytigon')
+  await PYODIDE.runPythonAsync('import pytigon')
+  console.log("INSTALL END!")
 }
 
 function syncfs (populate) {
@@ -106,7 +126,7 @@ function syncfs (populate) {
 const setup_python = async () => {
   console.log('SETUP 1:')
   if (PYODIDE == null) {
-    PYODIDE = await loadPyodide()
+    PYODIDE = await loadPyodide({stdLibURL: "/install/python_stdlib.zip"})
     console.log('SETUP 2:')
     let mountDir = '/home/pyodide/pytigon_data'
     PYODIDE.FS.mkdirTree(mountDir)
@@ -121,7 +141,7 @@ const setup_python = async () => {
   }
   const need_for_installation = await PYODIDE.runPythonAsync(`
     try:
-      import django
+      import pytigon
       ret = False
     except:
       ret = True
@@ -165,7 +185,7 @@ self.addEventListener('install', event => {
 const django_request = async request => {
   response = await caches.match(request.url)
   if (response !== undefined) {
-    console.log('IN CACHE: :' + request.url)
+    //console.log('IN CACHE: :' + request.url)
     return response
   }
 

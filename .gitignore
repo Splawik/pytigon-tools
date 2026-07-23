@@ -12,9 +12,11 @@ build
 dist
 
 .cache
+.env
 .idea/
 */.gradle/
 migrations/
+pytigon-pypi/pytigon*
 
 *.mo
 *.pkl

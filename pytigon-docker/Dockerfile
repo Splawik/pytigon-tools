@@ -1,4 +1,4 @@
-ARG python_version=3.13
+ARG python_version=3.14
 
 FROM python:${python_version} as build
 
@@ -9,16 +9,18 @@ RUN apt-get update -y
 RUN pip install --upgrade pip
 
 RUN pip install cryptography
-
-RUN pip install pytigon-lib
-RUN pip install pytigon
+RUN pip install mcp
 RUN pip install pytigon-batteries[all]
+RUN pip install pytigon-standard-prj
+RUN pip install pytigon
+RUN pip install pytigon-lib
 
 RUN pip install psycopg2-binary channels_redis sentry-sdk django-prometheus python3-openid
+RUN pip install django --upgrade
 
 FROM python:${python_version}-slim
 
-ARG python_version=3.13
+ARG python_version=3.14
 
 RUN apt-get update -y
 
@@ -28,6 +30,7 @@ RUN apt-get -y install postgresql-client postgresql-client-common libpq-dev
 
 RUN mkdir -p /home/www-data/pytigon/ext_prg
 RUN mkdir -p /home/www-data/.pytigon/temp
+
 
 ADD ./entrypoint-interface.py /home/www-data/pytigon/entrypoint-interface.py
 ADD ./entrypoint-interface-scheduler.sh /home/www-data/pytigon/entrypoint-interface-scheduler.sh

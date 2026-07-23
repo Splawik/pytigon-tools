@@ -1,14 +1,16 @@
-export TWINE_USERNAME=__token__
-export TWINE_PASSWORD=***
+export $(grep -v '^#' .env | xargs)
 cd pytigon-lib
-twine upload --repository pytigon-lib dist/*
+uv publish --token $TWINE_PASSWORD
+cd ..
+cd pytigon-standard-prj
+uv publish --token $TWINE_PASSWORD
 cd ..
 cd pytigon
-twine upload --repository pytigon dist/*
+uv publish --token $TWINE_PASSWORD
 cd ..
 cd pytigon-batteries
-twine upload --repository pytigon-batteries dist/*
+uv publish --token $TWINE_PASSWORD
 cd ..
 cd pytigon-gui
-twine upload --repository pytigon-gui dist/*
+uv publish --token $TWINE_PASSWORD
 cd ..
